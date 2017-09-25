@@ -12,6 +12,15 @@ local playerPostionY = love.graphics.getHeight() - playerPositionWidth
 
 local gameSpeed = 5
 
+--lane variables
+local lanes = {}
+local laneColorToReach = {}
+
+--lane color shift interval in seconds
+local colorChangeSpeed = 10
+local colorChangeInterval = 5 
+local colorChangeIntervalCounter = 0
+
 --x coordinates that the player can be on
 local playerPositions = {}
 
@@ -21,10 +30,6 @@ local runGold = 0
 --obstacle variables
 local obstacles = {}
 local obstacleImages = {}
-
---lane variables
-local lanes = {}
-local laneColorsToReach = {}
 
 --player is global so that it can be reached from keyController
 player = { 
@@ -48,9 +53,9 @@ function love.load()
     for i=0, gameSize
     do
         local lane = {
-            laneLineColor = { math.random(0,255), math.random(0,255), math.random(0,255) },
+            laneLineColor = { 0,0,0 },
             xPos = i*laneWidth,
-            innerColor = { math.random(0,255), math.random(0,255), math.random(0,255) },
+            innerColor = { 0,0,0 }
         }
         --lane
         table.insert( lanes, lane )
@@ -69,23 +74,55 @@ function love.load()
 
     for i=0, gameSize
     do 
-        laneColorsToReach[i] = {math.random(0,255), math.random(0,255), math.random(0,255)}
+        laneColorToReach[i] = { math.random(0,255), math.random(0,255), math.random(0,255) }
     end
 end
 
 function love.update(dt)
     updatePlayer()
     updateObstacles()
-    updateLanes()
+    updateLanes(dt)
 end
 
-function updateLanes()
-    --TODO
-    for i, lane in pairs(lanes)
-    do  
-        lane.innerColor = { math.random(0,255), math.random(0,255), math.random(0,255) }
-        lane.laneLineColor = { math.random(0,255), math.random(0,255), math.random(0,255) }
+function updateLanes(dt)
+    --to track time
+    colorChangeIntervalCounter = colorChangeIntervalCounter + dt
+    if colorChangeIntervalCounter >= colorChangeInterval then
+
+        for i=0, gameSize
+        do 
+            laneColorToReach[i] = { math.random(0,255), math.random(0,255), math.random(0,255) }
+        end
+        colorChangeIntervalCounter = 0
+
+    else 
+
+        for i, lane in pairs(lanes)
+        do  
+            local newColor = compareAndAlterColors(lane.innerColor, laneColorToReach[i-1])
+
+            lane.innerColor = newColor
+            lane.laneLineColor = newColor
+        end
+
     end
+end
+
+--this can be private in updateLanes()
+function compareAndAlterColors(old, new)
+    for i, newVal in pairs(new)
+    do
+        for j, oldVal in pairs(old)
+        do
+            print(j, "NEW: ", newVal, " OLD: ", oldVal)
+            if oldVal < newVal then
+                old[j-1] = oldVal + colorChangeSpeed
+            else
+                old[j-1] = oldVal - colorChangeSpeed
+            end
+        end
+    end
+    return old
 end
 
 function updatePlayer()
@@ -152,7 +189,6 @@ function love.draw()
     do
         --lane
         love.graphics.setColor(lane.innerColor, 255)
-        print(lane)
         love.graphics.rectangle("fill", lane.xPos, 0, laneWidth, windowWidth )
 
         --line
