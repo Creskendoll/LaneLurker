@@ -1,48 +1,9 @@
 require("keyController")
+require("gameSettings")
+require("gameControl")
 math.randomseed(os.time())
 
---white background
-love.graphics.setBackgroundColor( 255, 255, 255 )
-
---lane count - 1 beacuse the arrays
-local gameSize = 4
-local windowWidth = love.graphics.getWidth()
-local windowHeight = love.graphics.getHeight()
---because there is gameSize+1 many lanes
-local laneWidth = windowWidth/(gameSize+1)
-local playerPositionWidth = laneWidth/2
-local playerPostionY = love.graphics.getHeight() - playerPositionWidth
-
-local gameSpeed = 5
-local gameStartDifficulty = 5 
-
---lane variables
-local lanes = {}
---new lane colors
-local laneColorToReach = {}
-
---lane color shift interval in seconds
-local colorChangeSpeed = 2.5
---select new color every x second
-local colorChangeInterval = 1
---temp storage for time period
-local colorChangeIntervalCounter = 0
-
---obstacle spawn interval
-local obstacleSpawnInterval = 0.5
-local obstacleSpawnIntervalCounter = 0
-
---x coordinates that the player can be on
-local playerPositions = {}
-
-local runEXP = 0
-local runGold = 0
-
---obstacle variables
-local obstacles = {}
-local obstacleImages = {}
-
---player is global so that it can be reached from keyController
+--player is global so that it can be reached from every file
 player = { 
     position = {x = 0, y = playerPostionY, size = 50},
     image = love.graphics.newImage("assets/player.png"),
@@ -50,6 +11,10 @@ player = {
     isGoingUp = false,
     isAirBorne = false,
     moving = "forward",
+    state = "immune",
+    isVisible = true,
+    immunityTime = 2,
+    health = 100,
     speed = 5,
     jumpSpeed = 0.1,
     lane = 2,
@@ -59,6 +24,11 @@ player = {
 }
 
 function love.load()
+
+    for i=0, gameSize
+    do
+        obstacleLaneCount[i] = 0
+    end
 
     --initiate lane positions and player positions
     for i=0, gameSize
@@ -90,9 +60,11 @@ function love.load()
 end
 
 function love.update(dt)
-    updatePlayer()
-    updateObstacles(dt)
-    updateLanes(dt)
+    if not checkCollision(dt) then
+        updatePlayer()
+        updateObstacles(dt)
+        updateLanes(dt)
+    end
 end
 
 function updateLanes(dt)
@@ -141,31 +113,34 @@ function updatePlayer()
     if player.isAirBorne then
         if player.isGoingUp then
             player.distanceToGround = player.distanceToGround + player.jumpSpeed
-        end
 
-        if player.distanceToGround >= 2 then
-            player.isGoingUp = false
+            if player.distanceToGround >= 2 then
+                player.isGoingUp = false
+            end
         end
 
         if not player.isGoingUp and player.distanceToGround >= 1 then
             player.distanceToGround = player.distanceToGround - player.jumpSpeed
-            if player.distanceToGround == 1 then
+            if player.distanceToGround <= 1 then
                 player.isAirBorne = false
             end
         end
     end
 
+    --move player
     if player.moving == "right" then
-        if player.position.x <= playerPositions[player.lane] then
-            player.position.x = player.position.x + player.speed
+        if player.position.x <= playerPositions[playerLaneToGo] then
+            player.position.x = player.position.x + getPlayerSpeed(gameDifficulty)
         else
+            player.lane = playerLaneToGo
             player.position.x = playerPositions[player.lane]
             player.moving = "forward"
         end
     elseif player.moving == "left" then
-        if player.position.x >= playerPositions[player.lane] then
-            player.position.x = player.position.x - player.speed
+        if player.position.x >= playerPositions[playerLaneToGo] then
+            player.position.x = player.position.x - getPlayerSpeed(gameDifficulty)
         else
+            player.lane = playerLaneToGo
             player.position.x = playerPositions[player.lane]
             player.moving = "forward"
         end
@@ -176,33 +151,43 @@ function updateObstacles(dt)
     obstacleSpawnIntervalCounter = obstacleSpawnIntervalCounter + dt 
     local numberOfObstaclesInFrame = #obstacles
 
-    if numberOfObstaclesInFrame <= gameStartDifficulty and obstacleSpawnIntervalCounter >= obstacleSpawnInterval then
+    if numberOfObstaclesInFrame <= getMaxObstacleOnScreen(gameDifficulty) and obstacleSpawnIntervalCounter >= getObstacleSpawnInterval(gameDifficulty) then
 
         local randNum = math.random(0, #obstacleImages)
         local obstacleLane = math.random(0, gameSize)
 
-        -- for i, obs in pairs(obstacles)
-        -- do
-        --     while obs.lane == obstacleLane
-        --     do
-        --         obstacleLane = math.random(0, gameSize)
-        --     end
-        -- end
+        while true
+        do
+            if obstacleLaneCount[obstacleLane] > 1 then
+                obstacleLane = math.random(0, gameSize)
+            else
+                break
+            end
+        end
 
         local types = {}
         types[0] = "brick"
         types[1] = "metal"
         types[2] = "wooden" 
 
+        --create and add obstacle
         local obstacle = {
             --start form above the frame
             yPos = -laneWidth,
             lane = obstacleLane,
             image = obstacleImages[randNum],
-            type = types[randNum]
+            type = types[randNum],
+            speed = math.random( 0, 3 )
         }
 
+        --to keep track of how many obstacles are in one line
+        obstacleLaneCount[obstacle.lane] = obstacleLaneCount[obstacle.lane] + 1
+
         table.insert(obstacles, obstacle)
+
+        --update game settings
+        gameDifficulty = gameDifficulty + deltaTimeOffSet*dt
+        --reset the time span
         obstacleSpawnIntervalCounter = 0
 
     end
@@ -210,9 +195,10 @@ function updateObstacles(dt)
     --move and remove obstacles
     for i, obs in pairs(obstacles)
     do
-        obs.yPos = obs.yPos + gameSpeed
-        if obs.yPos > windowHeight then
-            table.remove(obstacles, i-1)
+        obs.yPos = obs.yPos + getGameSpeed(gameDifficulty) + obs.speed
+        if obs.yPos > windowHeight + 50 then
+            table.remove(obstacles, i)
+            obstacleLaneCount[obs.lane] = obstacleLaneCount[obs.lane] - 1
         end
     end
 end
@@ -224,7 +210,6 @@ function love.draw()
         --lane
         love.graphics.setColor(lane.innerColor, 255)
         love.graphics.rectangle("fill", lane.xPos, 0, laneWidth, windowWidth )
-
         --line
         love.graphics.setColor(lane.laneLineColor, 255)
         love.graphics.setLineStyle("smooth")
@@ -241,7 +226,11 @@ function love.draw()
     end
 
     --draw player
-    love.graphics.draw(player.image, player.position.x, player.position.y, math.rad(0),
-                    player.distanceToGround, 1, 25, 25)
+    if player.isVisible or player.state == "dead" then
+        love.graphics.draw(player.image, player.position.x, player.position.y, math.rad(0),
+                        player.distanceToGround, 1, 25, 25)
+    end
 
+    print(player.lane)
+    love.graphics.print(player.health)
 end

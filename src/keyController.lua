@@ -9,14 +9,14 @@ function love.keypressed(key)
     elseif key == "d" then
 
         if player.lane < 4 and player.moving == "forward" then --can remove player.moving to move more smooth 
-            player.lane = player.lane + 1
+            playerLaneToGo = playerLaneToGo + 1
             player.moving = "right"
         end
 
     elseif key == "a" then
 
         if player.lane > 0 and player.moving == "forward" then
-            player.lane = player.lane - 1
+            playerLaneToGo = playerLaneToGo - 1
             player.moving = "left"
         end
 
