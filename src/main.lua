@@ -4,22 +4,33 @@ math.randomseed(os.time())
 --white background
 love.graphics.setBackgroundColor( 255, 255, 255 )
 
-local gameSize = 5
+--lane count - 1 beacuse the arrays
+local gameSize = 4
 local windowWidth = love.graphics.getWidth()
-local laneWidth = windowWidth/gameSize
+local windowHeight = love.graphics.getHeight()
+--because there is gameSize+1 many lanes
+local laneWidth = windowWidth/(gameSize+1)
 local playerPositionWidth = laneWidth/2
 local playerPostionY = love.graphics.getHeight() - playerPositionWidth
 
 local gameSpeed = 5
+local gameStartDifficulty = 5 
 
 --lane variables
 local lanes = {}
+--new lane colors
 local laneColorToReach = {}
 
 --lane color shift interval in seconds
-local colorChangeSpeed = 10
-local colorChangeInterval = 5 
+local colorChangeSpeed = 2.5
+--select new color every x second
+local colorChangeInterval = 1
+--temp storage for time period
 local colorChangeIntervalCounter = 0
+
+--obstacle spawn interval
+local obstacleSpawnInterval = 0.5
+local obstacleSpawnIntervalCounter = 0
 
 --x coordinates that the player can be on
 local playerPositions = {}
@@ -70,7 +81,7 @@ function love.load()
     obstacleImages[1] = love.graphics.newImage("assets/Blocks/metalBlock.png")
     obstacleImages[2] = love.graphics.newImage("assets/Blocks/woodenBlock.png")
 
-    updateObstacles()
+    updateObstacles(0)
 
     for i=0, gameSize
     do 
@@ -80,7 +91,7 @@ end
 
 function love.update(dt)
     updatePlayer()
-    updateObstacles()
+    updateObstacles(dt)
     updateLanes(dt)
 end
 
@@ -88,7 +99,6 @@ function updateLanes(dt)
     --to track time
     colorChangeIntervalCounter = colorChangeIntervalCounter + dt
     if colorChangeIntervalCounter >= colorChangeInterval then
-
         for i=0, gameSize
         do 
             laneColorToReach[i] = { math.random(0,255), math.random(0,255), math.random(0,255) }
@@ -97,8 +107,10 @@ function updateLanes(dt)
 
     else 
 
+        --iterate through lanes
         for i, lane in pairs(lanes)
-        do  
+        do 
+            --receive a lane color tuple 
             local newColor = compareAndAlterColors(lane.innerColor, laneColorToReach[i-1])
 
             lane.innerColor = newColor
@@ -108,21 +120,21 @@ function updateLanes(dt)
     end
 end
 
---this can be private in updateLanes()
+--this can be private in updateLanes(), old = { 0, 255, 0 }, new = { 0, 255, 0 }
 function compareAndAlterColors(old, new)
-    for i, newVal in pairs(new)
+    local result ={}
+
+    for i, oldVal in pairs(old)
     do
-        for j, oldVal in pairs(old)
-        do
-            print(j, "NEW: ", newVal, " OLD: ", oldVal)
-            if oldVal < newVal then
-                old[j-1] = oldVal + colorChangeSpeed
-            else
-                old[j-1] = oldVal - colorChangeSpeed
-            end
+        if oldVal < new[i] and oldVal < 255 - colorChangeSpeed then
+            result[i] = oldVal + colorChangeSpeed
+        elseif oldVal > new[i] and oldVal > colorChangeSpeed then
+            result[i] = oldVal - colorChangeSpeed
+        else
+            result[i] = oldVal
         end
     end
-    return old
+    return result
 end
 
 function updatePlayer()
@@ -160,27 +172,49 @@ function updatePlayer()
     end
 end
 
-function updateObstacles()
-    local randNum = math.random(0, #obstacleImages)
+function updateObstacles(dt)
+    obstacleSpawnIntervalCounter = obstacleSpawnIntervalCounter + dt 
+    local numberOfObstaclesInFrame = #obstacles
 
-    local types = {}
-    types[0] = "brick"
-    types[1] = "metal"
-    types[2] = "wooden" 
+    if numberOfObstaclesInFrame <= gameStartDifficulty and obstacleSpawnIntervalCounter >= obstacleSpawnInterval then
 
-    local obstacle = {
-        yPos = -laneWidth,
-        lane = math.random(0, gameSize),
-        image = obstacleImages[randNum],
-        type = types[randNum]
-    }
+        local randNum = math.random(0, #obstacleImages)
+        local obstacleLane = math.random(0, gameSize)
 
+        -- for i, obs in pairs(obstacles)
+        -- do
+        --     while obs.lane == obstacleLane
+        --     do
+        --         obstacleLane = math.random(0, gameSize)
+        --     end
+        -- end
+
+        local types = {}
+        types[0] = "brick"
+        types[1] = "metal"
+        types[2] = "wooden" 
+
+        local obstacle = {
+            --start form above the frame
+            yPos = -laneWidth,
+            lane = obstacleLane,
+            image = obstacleImages[randNum],
+            type = types[randNum]
+        }
+
+        table.insert(obstacles, obstacle)
+        obstacleSpawnIntervalCounter = 0
+
+    end
+
+    --move and remove obstacles
     for i, obs in pairs(obstacles)
     do
         obs.yPos = obs.yPos + gameSpeed
+        if obs.yPos > windowHeight then
+            table.remove(obstacles, i-1)
+        end
     end
-
-    table.insert(obstacles, obstacle)
 end
 
 function love.draw()
