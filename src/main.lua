@@ -256,7 +256,7 @@ function updateObstacles(dt)
         --create and add obstacle
         local obstacle = {
             --start form above the frame
-            yPos = -laneWidth,
+            position = {x = playerPositions[obstacleLane], y = -laneWidth},
             lane = obstacleLane,
             image = obstacleImages[randNum],
             type = types[randNum],
@@ -278,8 +278,8 @@ function updateObstacles(dt)
     --move and remove obstacles
     for i, obs in pairs(obstacles)
     do
-        obs.yPos = obs.yPos + getGameSpeed(gameDifficulty) + obs.speed
-        if obs.yPos > windowHeight + 50 then
+        obs.position.y = obs.position.y + getGameSpeed(gameDifficulty) + obs.speed
+        if obs.position.y > windowHeight + 50 then
             table.remove(obstacles, i)
             obstacleLaneCount[obs.lane] = obstacleLaneCount[obs.lane] - 1
         end
@@ -304,7 +304,7 @@ function love.draw()
     --draw obstacles
     for i, obstacle in pairs(obstacles)
     do
-        love.graphics.draw(obstacle.image, playerPositions[obstacle.lane], obstacle.yPos, math.rad(0),
+        love.graphics.draw(obstacle.image, obstacle.position.x, obstacle.position.y, math.rad(0),
                     1, 1, 25, 25)
     end
 

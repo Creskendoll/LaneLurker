@@ -35,7 +35,7 @@ function checkCollision(dt)
         --player takes damage and enters immune mode
         --TODO: expand this
         if not player.isAirBorne then
-            if obstacle.yPos + 25 >= player.position.y - 20 and obstacle.lane == player.lane and obstacle.yPos - 25 <= player.position.y + 25  then
+            if calculateDistance(obstacle) < 50 then
                 if player.state == "normal" then
                     player.health = player.health - collisionDamage --not immune and playerImmunityCounter = 0
                     player.state = "immune"
@@ -58,4 +58,10 @@ function checkCollision(dt)
     end
 
     return false
+end
+
+--returns distance between player and obstacle
+function calculateDistance(obstacle)
+    local xDifference = (obstacle.position.x - player.position.x)^2 + (obstacle.position.y - player.position.y)^2
+    return math.sqrt( xDifference )
 end
