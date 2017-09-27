@@ -32,23 +32,27 @@ function checkCollision(dt)
 
     for i, obstacle in pairs(obstacles)
     do
+        --player takes damage and enters immune mode
         --TODO: expand this
-        if obstacle.yPos + 25 >= player.position.y - 20 and obstacle.lane == player.lane and obstacle.yPos - 25 <= player.position.y + 25  then
-            if player.state == "normal" then
-                player.health = player.health - collisionDamage --not immune and playerImmunityCounter = 0
-                player.state = "immune"
-                playerImmunityCounter = playerImmunityCounter + dt
+        if not player.isAirBorne then
+            if obstacle.yPos + 25 >= player.position.y - 20 and obstacle.lane == player.lane and obstacle.yPos - 25 <= player.position.y + 25  then
+                if player.state == "normal" then
+                    player.health = player.health - collisionDamage --not immune and playerImmunityCounter = 0
+                    player.state = "immune"
+                    playerImmunityCounter = playerImmunityCounter + dt
 
-                --initialize player flashing
-                playerFlashCounter = playerFlashCounter + dt
-                player.isVisible = false
-            end                
+                    --initialize player flashing
+                    playerFlashCounter = playerFlashCounter + dt
+                    player.isVisible = false
+                end                
+            end
         end
     end
 
     --if player is dead
     if player.health <= 0 then 
         playerImmunityCounter = 0
+        playerFlashCounter = 0
         player.state = "dead"
         return true 
     end

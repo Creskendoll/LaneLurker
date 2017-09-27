@@ -41,6 +41,17 @@ lanes = {}
 --new lane colors, regular array
 laneColorToReach = {}
 
+--lane buffs
+--in seconds
+getLaneBuffSpawnRate = function (randNum)
+    return randNum + gameDifficulty
+end 
+laneBuffActiveCounter = 0
+buffedLanes = {}
+--nothing is buffed
+laneToBuff = -1
+
+
 --lane color shift interval in seconds
 colorChangeSpeed = 2.5
 --select new color every x second

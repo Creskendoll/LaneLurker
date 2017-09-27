@@ -36,7 +36,9 @@ function love.load()
         local lane = {
             laneLineColor = { 0,0,0 },
             xPos = i*laneWidth,
-            innerColor = { 0,0,0 }
+            innerColor = { 0,0,0 },
+            buff = "none",
+            buffTimeCounter = 0
         }
         --lane
         table.insert( lanes, lane )
@@ -68,6 +70,9 @@ function love.update(dt)
 end
 
 function updateLanes(dt)
+    --update lane spawn timer
+    laneBuffActiveCounter = laneBuffActiveCounter + dt 
+
     --to track time
     colorChangeIntervalCounter = colorChangeIntervalCounter + dt
     if colorChangeIntervalCounter >= colorChangeInterval then
@@ -79,14 +84,76 @@ function updateLanes(dt)
 
     else 
 
+        --select lane to buff, reset timer
+        if laneBuffActiveCounter > getLaneBuffSpawnRate(math.random( 0, 1 )) then
+            laneToBuff = math.random( 1, gameSize + 1 )
+
+            local flag = true
+
+            while flag
+            do
+                for i, lane in pairs(lanes)
+                do
+                    if laneToBuff == i and not lane.buff == "none" then
+                        laneToBuff = math.random( 1, gameSize + 1 )
+                        break
+                    end
+                    flag = false
+                end
+            end
+
+            laneBuffActiveCounter = 0
+        end
+
+        --check lanes individual buff time
+        for i, lane in pairs(buffedLanes)
+        do
+            if lane.buffTimeCounter > getLaneBuffSpawnRate(math.random( 1, 2 )) then
+                lane.buff = "none"
+                lane.buffTimeCounter = 0
+                table.remove( buffedLanes, i )
+            end
+        end
+
         --iterate through lanes
         for i, lane in pairs(lanes)
-        do 
-            --receive a lane color tuple 
-            local newColor = compareAndAlterColors(lane.innerColor, laneColorToReach[i-1])
+        do
 
-            lane.innerColor = newColor
-            lane.laneLineColor = newColor
+            --spawn buffed lane
+            if i == laneToBuff and lane.buff == "none" then                
+                local buffType = -1
+
+                buffType = math.random( 0,1 )
+
+                if buffType == 0 then
+                    lane.buff = "heal"
+                    lane.buffTimeCounter = lane.buffTimeCounter + dt
+                elseif buffType == 1 then
+                    lane.buff = "damage"
+                    lane.buffTimeCounter = lane.buffTimeCounter + dt
+                end
+
+                table.insert( buffedLanes, lane )
+
+            elseif lane.buff == "none" then 
+                --receive a lane color tuple 
+                local newColor = compareAndAlterColors(lane.innerColor, laneColorToReach[i-1])
+
+                lane.innerColor = newColor
+
+            else
+                if lane.buff == "damage" then
+                    lane.innerColor = { 255,0,0 }
+                    lane.buffTimeCounter = lane.buffTimeCounter + dt
+                elseif lane.buff == "heal" then
+                    lane.innerColor = { 0,255,0 }
+                    lane.buffTimeCounter = lane.buffTimeCounter + dt
+                end
+            end
+
+                --print("Lane", i, "BuffTimeCounter", lane.buffTimeCounter)
+
+            lane.laneLineColor = lane.innerColor
         end
 
     end
@@ -231,6 +298,5 @@ function love.draw()
                         player.distanceToGround, 1, 25, 25)
     end
 
-    print(player.lane)
     love.graphics.print(player.health)
 end
