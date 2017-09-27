@@ -14,6 +14,8 @@ player = {
     state = "immune",
     isVisible = true,
     immunityTime = 2,
+    healOffSet = 10,
+    damageOffSet = 5,
     health = 100,
     speed = 5,
     jumpSpeed = 0.1,
@@ -63,7 +65,7 @@ end
 
 function love.update(dt)
     if not checkCollision(dt) then
-        updatePlayer()
+        updatePlayer(dt)
         updateObstacles(dt)
         updateLanes(dt)
     end
@@ -176,7 +178,8 @@ function compareAndAlterColors(old, new)
     return result
 end
 
-function updatePlayer()
+--movement and position
+function updatePlayer(dt)
     if player.isAirBorne then
         if player.isGoingUp then
             player.distanceToGround = player.distanceToGround + player.jumpSpeed
@@ -212,6 +215,19 @@ function updatePlayer()
             player.moving = "forward"
         end
     end
+
+    
+    for i, lane in pairs(lanes)
+    do
+        if lane.buff == "heal" and player.lane+1 == i then
+            player.health = player.health + player.healOffSet*dt 
+        end
+
+        if player.state == "normal" and lane.buff == "damage" and player.lane+1 == i then
+            player.health = player.health - player.damageOffSet*dt 
+        end    
+    end
+    
 end
 
 function updateObstacles(dt)

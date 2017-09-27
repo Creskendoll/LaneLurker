@@ -51,7 +51,6 @@ buffedLanes = {}
 --nothing is buffed
 laneToBuff = -1
 
-
 --lane color shift interval in seconds
 colorChangeSpeed = 2.5
 --select new color every x second
