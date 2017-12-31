@@ -1,7 +1,14 @@
 require("keyController")
 require("gameSettings")
 require("gameControl")
+require("ui")
+
+-- require("lib/UI/Class")
+-- require("lib.UI/GUIElements/GUIMain")
+
 math.randomseed(os.time())
+love.window.setFullscreen( true )
+--visible health bar
 
 --player is global so that it can be reached from every file
 player = { 
@@ -15,10 +22,10 @@ player = {
     isVisible = true,
     immunityTime = 2,
     healOffSet = 10,
-    damageOffSet = 5,
+    damageOffSet = 30,
     health = 100,
     speed = 5,
-    jumpSpeed = 0.1,
+    jumpSpeed = 0.08,
     lane = 2,
     level = 1,
     gold = 0,
@@ -26,7 +33,6 @@ player = {
 }
 
 function love.load()
-
     for i=0, gameSize
     do
         obstacleLaneCount[i] = 0
@@ -64,11 +70,12 @@ function love.load()
 end
 
 function love.update(dt)
-    if not checkCollision(dt) then
-        updatePlayer(dt)
-        updateObstacles(dt)
-        updateLanes(dt)
-    end
+        --check player state
+        if playerIsAlive(dt) then
+            updatePlayer(dt)
+            updateObstacles(dt)
+            updateLanes(dt)
+        end
 end
 
 function updateLanes(dt)
@@ -182,7 +189,7 @@ end
 function updatePlayer(dt)
     if player.isAirBorne then
         if player.isGoingUp then
-            player.distanceToGround = player.distanceToGround + player.jumpSpeed
+            player.distanceToGround = player.distanceToGround + getPlayerJumpSpeed(gameDifficulty)
 
             if player.distanceToGround >= 2 then
                 player.isGoingUp = false
@@ -190,7 +197,7 @@ function updatePlayer(dt)
         end
 
         if not player.isGoingUp and player.distanceToGround >= 1 then
-            player.distanceToGround = player.distanceToGround - player.jumpSpeed
+            player.distanceToGround = player.distanceToGround - getPlayerJumpSpeed(gameDifficulty)
             if player.distanceToGround <= 1 then
                 player.isAirBorne = false
             end
@@ -241,7 +248,7 @@ function updateObstacles(dt)
 
         while true
         do
-            if obstacleLaneCount[obstacleLane] > 1 then
+            if obstacleLaneCount[obstacleLane] > getMaxObstaclePerLane(gameDifficulty) then
                 obstacleLane = math.random(0, gameSize)
             else
                 break
@@ -270,6 +277,7 @@ function updateObstacles(dt)
 
         --update game settings
         gameDifficulty = gameDifficulty + deltaTimeOffSet*dt
+        
         --reset the time span
         obstacleSpawnIntervalCounter = 0
 
@@ -287,32 +295,38 @@ function updateObstacles(dt)
 end
 
 function love.draw()
-    --draw lines and lanes
-    for i, lane in pairs(lanes)
-    do
-        --lane
-        love.graphics.setColor(lane.innerColor, 255)
-        love.graphics.rectangle("fill", lane.xPos, 0, laneWidth, windowWidth )
-        --line
-        love.graphics.setColor(lane.laneLineColor, 255)
-        love.graphics.setLineStyle("smooth")
-        love.graphics.line(lane.xPos, 0, lane.xPos, windowWidth)
-    end
+    if gameIsRunning then
+        --draw lines and lanes
+        for i, lane in pairs(lanes)
+        do
+            --lane
+            love.graphics.setColor(lane.innerColor, 255)
+            love.graphics.rectangle("fill", lane.xPos, 0, laneWidth, windowWidth )
+            --line
+            love.graphics.setColor(lane.laneLineColor, 255)
+            love.graphics.setLineStyle("smooth")
+            love.graphics.line(lane.xPos, 0, lane.xPos, windowWidth)
+        end
 
-    --setColor for drawables, white, opac
-    love.graphics.setColor(255, 255, 255, 255)
-    --draw obstacles
-    for i, obstacle in pairs(obstacles)
-    do
-        love.graphics.draw(obstacle.image, obstacle.position.x, obstacle.position.y, math.rad(0),
-                    1, 1, 25, 25)
-    end
+        --setColor for drawables, white, opac
+        love.graphics.setColor(255, 255, 255, 255)
+        --draw obstacles
+        for i, obstacle in pairs(obstacles)
+        do
+            love.graphics.draw(obstacle.image, obstacle.position.x, obstacle.position.y, math.rad(0),
+                        1, 1, 25, 25)
+        end
 
-    --draw player
-    if player.isVisible or player.state == "dead" then
-        love.graphics.draw(player.image, player.position.x, player.position.y, math.rad(0),
-                        player.distanceToGround, 1, 25, 25)
-    end
+        --draw player
+        if player.isVisible or player.state == "dead" then
+            love.graphics.draw(player.image, player.position.x, player.position.y, math.rad(0),
+                            player.distanceToGround, 1, 25, 25)
+        end
 
-    love.graphics.print(player.health)
+        --drawHealthBar
+        love.graphics.print(player.health)
+    else 
+        --draw ui
+        drawUI()
+    end
 end

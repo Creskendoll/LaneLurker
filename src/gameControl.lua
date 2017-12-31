@@ -1,5 +1,5 @@
---returns true if there is collision
-function checkCollision(dt)
+--returns false if player is dead, updates player health
+function playerIsAlive(dt)
 
     if player.state == "immune" then
         playerImmunityCounter = playerImmunityCounter + dt
@@ -54,10 +54,10 @@ function checkCollision(dt)
         playerImmunityCounter = 0
         playerFlashCounter = 0
         player.state = "dead"
-        return true 
+        return false 
     end
 
-    return false
+    return true
 end
 
 --returns distance between player and obstacle
