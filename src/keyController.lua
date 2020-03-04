@@ -1,5 +1,5 @@
 function love.keypressed(key)
-    if key == " " then
+    if key == "space" then
 
         if not player.isAirBorne then
             player.isAirBorne = true

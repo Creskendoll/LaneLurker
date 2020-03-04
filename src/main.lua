@@ -1,13 +1,13 @@
 require("keyController")
 require("gameSettings")
 require("gameControl")
-require("ui")
+-- require("ui")
 
 -- require("lib/UI/Class")
 -- require("lib.UI/GUIElements/GUIMain")
 
 math.randomseed(os.time())
-love.window.setFullscreen( true )
+love.window.setFullscreen( false )
 --visible health bar
 
 --player is global so that it can be reached from every file
